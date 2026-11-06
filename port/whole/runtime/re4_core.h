@@ -323,6 +323,7 @@ void re4_core_gx_depth(const unsigned* cells, unsigned serial);
 /* The core process (host/coreproc.cpp): the map is in shared memory the app writes. */
 void re4_core_gx_depth_source(const unsigned* cells, const unsigned* serial);
 int re4_letterbox_off(void);
+int re4_widescreen_on(void);  /* re4_core_set_letterbox(2): the picture format "19.5:9" */
 /* A tap on the picture (cores since 22.10.2026; runtime/menu_touch.cpp): u
  * across the game's 512 x 448 picture, v down it, both 0..1. Used at the next
  * game frame while a sub screen is open (tabs, the attache case and its
