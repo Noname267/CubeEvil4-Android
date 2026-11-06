@@ -2260,15 +2260,9 @@ bool drawGx() {
       boxW = ultraWide ? height * 39 / 18 : height * 16 / 9;
     }
     gx->Present((width - boxW) / 2, (height - boxH) / 2, boxW, boxH, top, rows);
-    if (ultraWide) {
-      // taps go by the flat layer (the sub screens), which spans 32/39 of the box
-      const int layerW = boxW * 32 / 39;
-      notePicture((width - layerW) / 2, (height - boxH) / 2, layerW, boxH, xh ? float(top) / float(xh) : 0.f,
-                  xh ? float(rows) / float(xh) : 1.f);
-    } else {
-      notePicture((width - boxW) / 2, (height - boxH) / 2, boxW, boxH, xh ? float(top) / float(xh) : 0.f,
-                  xh ? float(rows) / float(xh) : 1.f);
-    }
+    // (19.5:9: the sub screens are stretched over the whole box, so the taps go by the box)
+    notePicture((width - boxW) / 2, (height - boxH) / 2, boxW, boxH, xh ? float(top) / float(xh) : 0.f,
+                xh ? float(rows) / float(xh) : 1.f);
   }
   // the map: "4:3 (GC)" also when RE4_GX_ASPECT asks for 4:3 (as above)
   minimapDraw(format < 0 && aspect && std::string(aspect) == "4:3" ? 1 : format, xh);
