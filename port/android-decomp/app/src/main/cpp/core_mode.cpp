@@ -2206,7 +2206,8 @@ bool drawGx() {
   // 29.10.2026; 4, the exact box's first own number, is 3), else RE4_GX_ASPECT
   const char *aspect = getenv("RE4_GX_ASPECT");
   const int format = optAspect.load() == 4 ? 3 : optAspect.load();
-  const int noBars = format == 3 ? 1 : 0;
+  // the switch to the core: 1 the game's bars off (4:3 without bars), 2 the same and its 3D for 19.5:9 (patch 0210)
+  const int noBars = format == 3 ? 1 : format == 5 ? 2 : 0;
   if (api.setLetterbox && noBars != letterboxSent) {
     api.setLetterbox(noBars);
     letterboxSent = noBars;
@@ -2218,7 +2219,9 @@ bool drawGx() {
   // the game computes its 3D for 4:3 (camera.cpp) into 512 x 448 pixels that a television showed
   // as 10:7; in an exact 4:3 box the 3D is right and the flat draws (HUD, menus, text) are drawn
   // 15/14 wider by the renderer, so they keep the shape they had on the television
-  gx->SetWiden(format == 3 ? 15.0f / 14.0f : 1.0f);
+  // 19.5:9: the game's 3D is drawn wider (patch 0210) and stretched back by the box; the flat draws are
+  // drawn 32/39 narrower around the centre so they keep their shape
+  gx->SetWiden(format == 3 ? 15.0f / 14.0f : format == 5 ? 32.0f / 39.0f : 1.0f);
   if (format == 3) {
     // 4:3 without the bars: the picture's lines fill the height of an exact 4:3 box (wish of the
     // project owner, 29.10.2026: no bars, nothing cut off, the user interface in its shape; before,
@@ -2247,14 +2250,17 @@ bool drawGx() {
     // on a 4:3 television exactly 16:9); those rows fill a 16:9 box, or with
     // "Stretched" (2, wish of the project owner, 22.10.2026) the whole screen
     const unsigned top = xh * 56 / 448, rows = xh * 336 / 448;
-    int boxW = width, boxH = width * 9 / 16;
+    // "19.5:9" (5): the whole picture in a 19.5:9 box; the game draws a wider view for it (patch 0210)
+    const bool ultraWide = format == 5;
+    int boxW = width, boxH = ultraWide ? width * 18 / 39 : width * 9 / 16;
     if (format == 2) {
       boxH = height;
     } else if (boxH > height) {
       boxH = height;
-      boxW = height * 16 / 9;
+      boxW = ultraWide ? height * 39 / 18 : height * 16 / 9;
     }
     gx->Present((width - boxW) / 2, (height - boxH) / 2, boxW, boxH, top, rows);
+    // (19.5:9: the sub screens are stretched over the whole box, so the taps go by the box)
     notePicture((width - boxW) / 2, (height - boxH) / 2, boxW, boxH, xh ? float(top) / float(xh) : 0.f,
                 xh ? float(rows) / float(xh) : 1.f);
   }
@@ -3061,6 +3067,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_ast_re4decomp_CoreBridge_setGraphics(
       aspect == 1   ? "4:3"
       : aspect == 2 ? "stretched"
       : aspect == 3 || aspect == 4 ? "4:3 without the bars"
+      : aspect == 5                ? "19.5:9"
                                    : "16:9");
 }
 

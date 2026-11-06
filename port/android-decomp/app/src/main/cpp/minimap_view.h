@@ -120,15 +120,20 @@ inline void PictureRects(int format, int width, int height, int xh, Rect *hud, R
     *pic = {(width - boxW) / 2, (height - picH) / 2, boxW, picH};
     *hud = {pic->x, pic->y + picH * (xh - top - rows) / xh, boxW, picH * rows / xh};
   } else {
-    int boxW = width, boxH = width * 9 / 16;
+    const bool ultraWide = format == 5;
+    int boxW = width, boxH = ultraWide ? width * 18 / 39 : width * 9 / 16;
     if (format == 2) {
       boxH = height;
     } else if (boxH > height) {
       boxH = height;
-      boxW = height * 16 / 9;
+      boxW = ultraWide ? height * 39 / 18 : height * 16 / 9;
     }
     *pic = {(width - boxW) / 2, (height - boxH) / 2, boxW, boxH};
     *hud = *pic;
+    if (ultraWide) {  // the flat layer (the HUD) is drawn 32/39 narrower around the centre
+      hud->w = boxW * 32 / 39;
+      hud->x = pic->x + (boxW - hud->w) / 2;
+    }
   }
 }
 

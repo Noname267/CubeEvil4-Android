@@ -3640,6 +3640,10 @@ struct GxRenderer::Impl {
     const float f = widen2d.load(std::memory_order_relaxed);
     if (f == 1.0f || !k.orthographic)
       return 1.0f;
+    // 19.5:9 (f below one): the game's menu screens (RE4_GX_CHUNK_STILL: the radio terminal / codec, the sub
+    // screens, the option and card screens) are drawn over the whole picture, stretched to the box, not narrowed
+    if (f < 1.0f && stillChunk)
+      return 1.0f;
     const float half = AsFloat(xfReg[0x1A]), centre = AsFloat(xfReg[0x1D]) - 342.0f;
     if (half * 2.0f < 500.0f || std::fabs(centre - half) > 1.0f)
       return 1.0f;
@@ -4140,6 +4144,7 @@ struct GxRenderer::Impl {
   // (their matrices are the blended ones).
   static constexpr int kFlareSlots = 32;
   bool flaresOn = false, flareFailed = false;
+  bool stillChunk = false;       // the chunk in work is a menu screen of the game (RE4_GX_CHUNK_STILL)
   std::uint32_t flareAfter = 0;  // the op offset after the scene's last 3D draw (0: none in this chunk)
   bool flareDone = false;
   struct FlareCand {
@@ -5807,6 +5812,7 @@ void GxRenderer::Run(const Re4GxChunk &chunk) {
   // lens flares: after the scene's last 3D draw (FlareScan); its light sources noted on the way (FlareNote)
   // none on a menu screen of the game (RE4_GX_CHUNK_STILL: the option screen, the retry / load menu, sub screens,
   // card screens, results; project owner 04.11.2026: stars on the "NEUER VERSUCH oder LADEN" menu's letters)
+  m.stillChunk = (chunk.flags & RE4_GX_CHUNK_STILL) != 0;
   m.flareAfter = m.flaresOn && !m.skipDraws && !(chunk.flags & RE4_GX_CHUNK_STILL) ? m.FlareScan(chunk) : 0;
   m.flareDone = false;
   m.flareCands.clear();

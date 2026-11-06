@@ -769,13 +769,20 @@ int re4_dof_enabled(void)
 // frame through re4_letterbox_open (runtime/picture.cpp: in play only; the
 // bars and the scissor stay in events and sub screens).
 volatile int gLetterboxOff = 0;
+// The picture format "19.5:9" is the value 2 of the same switch (bars off while playing, as 1, and the
+// game's 3D for a 19.5:9 box instead of 4:3: patch 0210, re4_view_aspect in runtime/picture.cpp).
+volatile int gWideScreen = 0;
 
 void re4_core_set_letterbox(int off)
 {
     if (gLetterboxOff != (off != 0)) {
         re4_log("core: letterbox bars %s while playing", off ? "off" : "on");
     }
+    if (gWideScreen != (off == 2)) {
+        re4_log("core: 19.5:9 widescreen %s", off == 2 ? "on" : "off");
+    }
     gLetterboxOff = off != 0;
+    gWideScreen = off == 2;
 }
 
 extern "C" void re4_gx_set_fast_cores(int on);
@@ -832,6 +839,11 @@ void re4_core_gx_depth_source(const unsigned* cells, const unsigned* serial)
 int re4_letterbox_off(void)
 {
     return gLetterboxOff;
+}
+
+int re4_widescreen_on(void)
+{
+    return gWideScreen;
 }
 
 // The language of the European discs (re4_core.h, runtime/game_language.cpp): the app's choice,

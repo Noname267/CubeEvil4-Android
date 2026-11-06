@@ -10,9 +10,19 @@
 extern GLOBAL_WK* pG;
 
 extern "C" int re4_letterbox_off(void);
+extern "C" int re4_widescreen_on(void);  // runtime/core_api.cpp
 extern "C" void re4_log(const char* fmt, ...);
 extern "C" void re4_gx_still(int on);                      // runtime/gx_decode.cpp
 extern "C" void re4_add_frame_hook(void (*hook)(unsigned));  // runtime/pad.cpp
+
+// The aspect of the game's 3D projections and culling (patch 0210): 4:3 as on the GameCube, or with the app's
+// picture format "19.5:9" the 4:3 widened by the stretch of the 16:9 rows into a 19.5:9 box (39/32): 1.625.
+// The sub screens (the radio terminal / codec, inventory, map, shop, files) are laid out for the whole picture and
+// stay at 4:3: the box stretches them to its width (a wider aspect would leave them narrow in the middle).
+extern "C" float re4_view_aspect(void)
+{
+    return re4_widescreen_on() && !(pG && StaFlagChk(pG, STA_SUB_SCRN)) ? 1.625f : 1.3333334f;
+}
 
 extern "C" int re4_letterbox_open(void)
 {

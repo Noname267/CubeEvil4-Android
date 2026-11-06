@@ -642,8 +642,8 @@ final class CoreMenu extends Dialog {
     // Unknown GPU capabilities must not enable unsupported samples or anisotropy.
     int samples = info == null ? 1 : Math.max(1, info[0]);
     int anisotropy = info == null ? 1 : Math.max(1, info[1]);
-    graphicChoices(R.string.ingame_picture, "aspect", new String[] {s(R.string.ingame_original_43), s(R.string.ingame_43_no_bars), "16:9", s(R.string.ingame_stretched)},
-        new int[] {1, 3, 0, 2}, 0, Integer.MAX_VALUE);
+    graphicChoices(R.string.ingame_picture, "aspect", new String[] {s(R.string.ingame_original_43), s(R.string.ingame_43_no_bars), "16:9", "19.5:9", s(R.string.ingame_stretched)},
+        new int[] {1, 3, 0, 5, 2}, 0, Integer.MAX_VALUE);
     resolutionChoices();
     graphicsLine = indentedHelp(""); graphicsLine.setPadding(dp(MenuLayout.GAP), dp(4), dp(MenuLayout.GAP), dp(10)); showGraphics();
     graphicChoices(R.string.ingame_antialiasing, "samples", new String[] {s(R.string.ingame_off), "2× MSAA", "4× MSAA"},
