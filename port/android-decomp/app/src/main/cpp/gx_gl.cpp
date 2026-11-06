@@ -3168,6 +3168,8 @@ struct GxRenderer::Impl {
     const ShaderKey &k = key;
     const unsigned primitive = d.primitive & 0xFF;
     UseEfb();
+    if (widen2d.load(std::memory_order_relaxed) < 1.0f && !merge)
+      BlackenSides(d, chunk, k);
     ApplyState(primitive);
     const float pointSize = static_cast<float>((bp[0x22] >> 8) & 0xFF) / 6.0f * Sf(1);
     if (xf.proj[1][3] != pointSize) {
@@ -3648,6 +3650,68 @@ struct GxRenderer::Impl {
         return 1.0f;
     return f;
   }
+
+  // 19.5:9 (SetWiden below one): the flat draws are drawn narrower around the centre, so a screen the game
+  // draws over the whole picture (the codec, the sub screens, the menus: an opaque quad over the whole
+  // viewport) leaves the strips at the sides to the 3D picture behind it. The first such quad of a picture
+  // blackens the strips (a clear under a scissor; the narrowed draws never reach them).
+  void BlackenSides(const Re4GxDraw &d, const Re4GxChunk &chunk, const ShaderKey &k) {
+    if (!k.orthographic || d.vertexCount != 4 || d.stride < 12 || sidesChunk == stats.chunks)
+      return;
+    if ((bp[0x41] & 1) || !((bp[0x41] >> 3) & 1))  // blending on, or no colour write: not a background
+      return;
+    const float f = WidenFor(k);
+    if (f >= 1.0f)
+      return;
+    if (d.vertexOffset + static_cast<std::uint64_t>(4) * d.stride > chunk.vertexBytes)
+      return;
+    unsigned mtxAt = 12;
+    if (d.layout & RE4_GX_V_NORMAL)
+      mtxAt += (d.layout & RE4_GX_V_BINORMAL_TANGENT) ? 36 : 12;
+    mtxAt += ((d.layout & RE4_GX_V_COLOR0) ? 4 : 0) + ((d.layout & RE4_GX_V_COLOR1) ? 4 : 0);
+    for (int t = 0; t < 8; t++)
+      mtxAt += (d.layout & (RE4_GX_V_TEX0 << t)) ? 8 : 0;
+    float minX = 1e9f, maxX = -1e9f, minY = 1e9f, maxY = -1e9f;
+    for (std::uint32_t v = 0; v < 4; v++) {
+      const std::uint8_t *at = chunk.vertices + d.vertexOffset + static_cast<std::size_t>(v) * d.stride;
+      float pos[3];
+      std::memcpy(pos, at, 12);
+      unsigned row = d.matrices[0] & 63;
+      if ((d.layout & RE4_GX_V_MATRIX) && mtxAt < d.stride)
+        row = at[mtxAt] & 63;
+      if (row > 61)
+        return;
+      float e[3];
+      for (int r = 0; r < 3; r++)
+        e[r] = xf.posTex[row + r][0] * pos[0] + xf.posTex[row + r][1] * pos[1] + xf.posTex[row + r][2] * pos[2] +
+               xf.posTex[row + r][3];
+      const float cx = xf.proj[0][0] * e[0] + xf.proj[0][1], cy = xf.proj[0][2] * e[1] + xf.proj[0][3];
+      if (!std::isfinite(cx) || !std::isfinite(cy))
+        return;
+      minX = std::min(minX, cx);
+      maxX = std::max(maxX, cx);
+      minY = std::min(minY, cy);
+      maxY = std::max(maxY, cy);
+    }
+    if (minX > -0.97f || maxX < 0.97f || minY > -0.97f || maxY < 0.97f)
+      return;
+    const float half = AsFloat(xfReg[0x1A]), centre = AsFloat(xfReg[0x1D]) - 342.0f;
+    const int left = static_cast<int>(centre - half * f), right = static_cast<int>(centre + half * f) + 1;
+    sidesChunk = stats.chunks;
+    glEnable(GL_SCISSOR_TEST);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    if (left > 0) {
+      glScissor(0, 0, Lo(left), Lo(kEfbHeight));
+      glClear(GL_COLOR_BUFFER_BIT);
+    }
+    if (right < kEfbWidth) {
+      glScissor(Lo(right), 0, Lo(kEfbWidth) - Lo(right), Lo(kEfbHeight));
+      glClear(GL_COLOR_BUFFER_BIT);
+    }
+    stateValid = false;  // the scissor and the colour mask are not the ones ApplyState last set
+  }
+  unsigned sidesChunk = ~0u;
 
   // --- EFB copies -------------------------------------------------------------------
 
