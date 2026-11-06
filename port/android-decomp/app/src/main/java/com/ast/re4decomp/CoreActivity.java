@@ -131,7 +131,7 @@ public final class CoreActivity extends Activity implements InputManager.InputDe
   static int fovOffset(SharedPreferences input) {
     return Math.max(-FOV_RANGE, Math.min(FOV_RANGE, input.getInt(FOV_OFFSET, 0)));
   }
-  /** The menu's picture options: scale (0 auto, 1-4), samples, anisotropy, aspect (0 16:9, 1 4:3, 2 stretched, 3 4:3 without bars). */
+  /** The menu's picture options: scale (0 auto, 1-4), samples, anisotropy, aspect (0 16:9, 1 4:3, 2 stretched, 3 4:3 without bars, 5 19.5:9). */
   static final String GRAPHICS_PREFS = "core_graphics";
   /** The menu's "Game language" with the European discs (0 the device's, 2..6 as CoreBridge.setLanguage). */
   static final String GAME_PREFS = "core_game", GAME_LANGUAGE = "gameLanguage";
